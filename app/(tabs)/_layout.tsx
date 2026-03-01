@@ -1,12 +1,13 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { LayoutDashboard, Users, FlaskConical, MessageCircle, Settings } from 'lucide-react-native';
+import { View, StyleSheet } from 'react-native';
+import { LayoutDashboard, Users, FlaskConical, Settings, Sparkles } from 'lucide-react-native';
 import Colors from '../../constants/colors';
 import { Fonts } from '../../constants/fonts';
 import { usePractitioner } from '../../contexts/PractitionerContext';
 
 export default function TabLayout() {
-  const { unreadAlerts, totalUnreadMessages } = usePractitioner();
+  const { unreadAlerts } = usePractitioner();
 
   return (
     <Tabs
@@ -60,30 +61,29 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="gabriel"
+        options={{
+          title: 'Gabriel',
+          tabBarIcon: ({ color, focused }) => (
+            <View style={[gabrielStyles.iconWrap, focused && gabrielStyles.iconWrapActive]}>
+              <Sparkles size={22} color={focused ? Colors.gold : color} strokeWidth={focused ? 2 : 1.8} />
+            </View>
+          ),
+          tabBarLabelStyle: {
+            fontFamily: Fonts.semiBold,
+            fontSize: 10,
+            fontWeight: '600' as const,
+            letterSpacing: 0.3,
+          },
+        }}
+      />
+      <Tabs.Screen
         name="protocols"
         options={{
           title: 'Protocols',
           tabBarIcon: ({ color, size }) => (
             <FlaskConical size={size - 2} color={color} strokeWidth={1.8} />
           ),
-        }}
-      />
-      <Tabs.Screen
-        name="messages"
-        options={{
-          title: 'Messages',
-          tabBarIcon: ({ color, size }) => (
-            <MessageCircle size={size - 2} color={color} strokeWidth={1.8} />
-          ),
-          tabBarBadge: totalUnreadMessages > 0 ? totalUnreadMessages : undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: Colors.teal,
-            fontSize: 10,
-            fontFamily: Fonts.semiBold,
-            minWidth: 18,
-            height: 18,
-            lineHeight: 18,
-          },
         }}
       />
       <Tabs.Screen
@@ -95,6 +95,28 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="messages"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
+
+const gabrielStyles = StyleSheet.create({
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: -4,
+  },
+  iconWrapActive: {
+    backgroundColor: Colors.goldLight,
+    borderWidth: 1.5,
+    borderColor: 'rgba(184, 160, 136, 0.25)',
+  },
+});

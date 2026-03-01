@@ -22,7 +22,7 @@ import Colors from '../../../constants/colors';
 import { Fonts } from '../../../constants/fonts';
 import { usePractitioner } from '../../../contexts/PractitionerContext';
 import { hapticLight } from '../../../utils/haptics';
-import type { Patient } from '../../../constants/practitioner-data';
+import type { Patient, PractitionerMessage } from '../../../constants/practitioner-data';
 
 type FilterStatus = 'all' | 'active' | 'review' | 'new' | 'inactive';
 
@@ -34,7 +34,7 @@ const FILTER_OPTIONS: { label: string; value: FilterStatus }[] = [
   { label: 'Inactive', value: 'inactive' },
 ];
 
-function PatientCard({ patient, onPress }: { patient: Patient; onPress: () => void }) {
+function PatientCard({ patient, onPress, unreadMessages }: { patient: Patient; onPress: () => void; unreadMessages: number }) {
   const statusColors: Record<string, { bg: string; text: string }> = {
     active: { bg: Colors.greenBg, text: Colors.green },
     review: { bg: Colors.amberBg, text: Colors.amber },
@@ -50,6 +50,11 @@ function PatientCard({ patient, onPress }: { patient: Patient; onPress: () => vo
         <View style={styles.avatarWrap}>
           <Text style={styles.avatarText}>{patient.avatar}</Text>
           {hasAlerts && <View style={styles.alertDot} />}
+          {unreadMessages > 0 && (
+            <View style={styles.msgBadge}>
+              <Text style={styles.msgBadgeText}>{unreadMessages}</Text>
+            </View>
+          )}
         </View>
         <View style={styles.patientInfo}>
           <View style={styles.nameRow}>
@@ -113,7 +118,15 @@ function formatShortDate(dateStr: string): string {
 export default function PatientsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { patients, searchPatients } = usePractitioner();
+  const { patients, searchPatients, messages } = usePractitioner();
+
+  const unreadByPatient = useMemo(() => {
+    const map = new Map<string, number>();
+    messages.forEach((m: PractitionerMessage) => {
+      if (m.unreadCount > 0) map.set(m.patientId, m.unreadCount);
+    });
+    return map;
+  }, [messages]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<FilterStatus>('all');
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -203,6 +216,7 @@ export default function PatientsScreen() {
               key={patient.id}
               patient={patient}
               onPress={() => handlePatientPress(patient.id)}
+              unreadMessages={unreadByPatient.get(patient.id) ?? 0}
             />
           ))
         )}
@@ -350,6 +364,26 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.softRed,
     borderWidth: 2,
     borderColor: Colors.card,
+  },
+  msgBadge: {
+    position: 'absolute',
+    bottom: -2,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: Colors.teal,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: Colors.card,
+  },
+  msgBadgeText: {
+    fontSize: 9,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600' as const,
+    color: '#FFF',
   },
   patientInfo: {
     flex: 1,

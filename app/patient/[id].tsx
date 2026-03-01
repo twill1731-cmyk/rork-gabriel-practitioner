@@ -33,7 +33,7 @@ import { usePractitioner } from '../../contexts/PractitionerContext';
 import { hapticLight } from '../../utils/haptics';
 import type { LabFlag } from '../../constants/practitioner-data';
 
-type TabId = 'overview' | 'labs' | 'protocol' | 'notes';
+type TabId = 'overview' | 'labs' | 'protocol' | 'notes' | 'messages';
 
 function LabRow({ lab }: { lab: LabFlag }) {
   const statusColors: Record<string, string> = {
@@ -94,11 +94,12 @@ export default function PatientDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { getPatient } = usePractitioner();
+  const { getPatient, getPatientMessages } = usePractitioner();
   const [activeTab, setActiveTab] = useState<TabId>('overview');
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const patient = useMemo(() => getPatient(id || ''), [id, getPatient]);
+  const patientMessages = useMemo(() => getPatientMessages(id || ''), [id, getPatientMessages]);
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
@@ -131,11 +132,14 @@ export default function PatientDetailScreen() {
     evening: <Moon size={12} color={Colors.blue} strokeWidth={1.8} />,
   };
 
-  const tabs: { id: TabId; label: string }[] = [
+  const unreadMsgCount = patientMessages?.unreadCount ?? 0;
+
+  const tabs: { id: TabId; label: string; badge?: number }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'labs', label: 'Labs' },
     { id: 'protocol', label: 'Protocol' },
     { id: 'notes', label: 'Notes' },
+    { id: 'messages', label: 'Messages', badge: unreadMsgCount },
   ];
 
   return (
@@ -235,9 +239,16 @@ export default function PatientDetailScreen() {
               onPress={() => { hapticLight(); setActiveTab(tab.id); }}
               activeOpacity={0.7}
             >
-              <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
-                {tab.label}
-              </Text>
+              <View style={styles.tabInner}>
+                <Text style={[styles.tabText, activeTab === tab.id && styles.tabTextActive]}>
+                  {tab.label}
+                </Text>
+                {tab.badge !== undefined && tab.badge > 0 && (
+                  <View style={[styles.tabBadge, activeTab === tab.id && styles.tabBadgeActive]}>
+                    <Text style={[styles.tabBadgeText, activeTab === tab.id && styles.tabBadgeTextActive]}>{tab.badge}</Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
           ))}
         </View>
@@ -359,6 +370,40 @@ export default function PatientDetailScreen() {
           </View>
         )}
 
+        {activeTab === 'messages' && (
+          <View style={styles.tabContent}>
+            {patientMessages && patientMessages.messages.length > 0 ? (
+              <View style={styles.messagesCard}>
+                {patientMessages.messages.sort((a, b) => a.timestamp - b.timestamp).map((msg, idx) => (
+                  <View key={msg.id}>
+                    {idx > 0 && <View style={styles.msgDivider} />}
+                    <View style={styles.msgRow}>
+                      <View style={[
+                        styles.msgSenderDot,
+                        { backgroundColor: msg.sender === 'practitioner' ? Colors.teal : msg.sender === 'system' ? Colors.gold : Colors.blue },
+                      ]} />
+                      <View style={styles.msgContent}>
+                        <View style={styles.msgTopRow}>
+                          <Text style={styles.msgSender}>
+                            {msg.sender === 'practitioner' ? 'You' : msg.sender === 'system' ? 'System' : patient.name.split(' ')[0]}
+                          </Text>
+                          <Text style={styles.msgTime}>{formatMsgTime(msg.timestamp)}</Text>
+                        </View>
+                        <Text style={[styles.msgText, !msg.read && styles.msgTextUnread]}>{msg.content}</Text>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyTab}>
+                <MessageCircle size={32} color={Colors.textTertiary} strokeWidth={1.2} />
+                <Text style={styles.emptyTabText}>No messages with this patient</Text>
+              </View>
+            )}
+          </View>
+        )}
+
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.primaryAction} onPress={() => hapticLight()} activeOpacity={0.7}>
             <MessageCircle size={18} color="#FFF" strokeWidth={1.8} />
@@ -372,6 +417,18 @@ export default function PatientDetailScreen() {
       </ScrollView>
     </View>
   );
+}
+
+function formatMsgTime(timestamp: number): string {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (hours < 1) return 'Just now';
+  if (hours < 24) return `${hours}h ago`;
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return `${days}d ago`;
+  return new Date(timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function formatDate(dateStr: string): string {
@@ -630,6 +687,11 @@ const styles = StyleSheet.create({
   tabActive: {
     backgroundColor: Colors.teal,
   },
+  tabInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
   tabText: {
     fontSize: 13,
     fontFamily: Fonts.medium,
@@ -640,6 +702,27 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontFamily: Fonts.semiBold,
     fontWeight: '600' as const,
+  },
+  tabBadge: {
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    backgroundColor: Colors.teal,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  tabBadgeActive: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+  },
+  tabBadgeText: {
+    fontSize: 9,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600' as const,
+    color: '#FFF',
+  },
+  tabBadgeTextActive: {
+    color: '#FFF',
   },
   tabContent: {
     gap: 12,
@@ -976,6 +1059,62 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.medium,
     fontWeight: '500' as const,
     color: Colors.textSecondary,
+  },
+  messagesCard: {
+    backgroundColor: Colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+    overflow: 'hidden',
+  },
+  msgDivider: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginLeft: 32,
+  },
+  msgRow: {
+    flexDirection: 'row',
+    padding: 14,
+    gap: 10,
+  },
+  msgSenderDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginTop: 6,
+  },
+  msgContent: {
+    flex: 1,
+  },
+  msgTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  msgSender: {
+    fontSize: 13,
+    fontFamily: Fonts.semiBold,
+    fontWeight: '600' as const,
+    color: Colors.text,
+  },
+  msgTime: {
+    fontSize: 11,
+    fontFamily: Fonts.regular,
+    fontWeight: '400' as const,
+    color: Colors.textTertiary,
+  },
+  msgText: {
+    fontSize: 14,
+    fontFamily: Fonts.regular,
+    fontWeight: '400' as const,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+  msgTextUnread: {
+    color: Colors.text,
+    fontFamily: Fonts.medium,
+    fontWeight: '500' as const,
   },
   backLink: {
     paddingVertical: 8,

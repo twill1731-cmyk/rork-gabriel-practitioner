@@ -4,8 +4,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import createContextHook from '@nkzw/create-context-hook';
 import { setHapticEnabledCache } from '../utils/haptics';
 import { setSoundEnabled as setSoundEnabledCache } from '../utils/sounds';
-import type { NotificationPrefs } from '../services/notifications';
-import { DEFAULT_NOTIFICATION_PREFS, loadNotificationPrefs, saveNotificationPrefs, scheduleProtocolReminders, requestNotificationPermissions } from '../services/notifications';
 
 export interface AppSettings {
   dailyCheckInReminder: boolean;
@@ -15,7 +13,13 @@ export interface AppSettings {
   hapticFeedback: boolean;
 }
 
-export type { NotificationPrefs };
+export interface NotificationPrefs {
+  masterEnabled: boolean;
+}
+
+const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
+  masterEnabled: false,
+};
 
 const DEFAULT_SETTINGS: AppSettings = {
   dailyCheckInReminder: false,
@@ -40,11 +44,6 @@ export const [SettingsProvider, useSettings] = createContextHook(() => {
     },
   });
 
-  const notifPrefsQuery = useQuery({
-    queryKey: ['gabriel_notification_prefs'],
-    queryFn: loadNotificationPrefs,
-  });
-
   const saveSettingsMutation = useMutation({
     mutationFn: async (updated: AppSettings) => {
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(updated));
@@ -62,40 +61,16 @@ export const [SettingsProvider, useSettings] = createContextHook(() => {
   }, [settingsQuery.data]);
 
   useEffect(() => {
-    if (notifPrefsQuery.data) {
-      setNotificationPrefs(notifPrefsQuery.data);
-    }
-  }, [notifPrefsQuery.data]);
-
-  useEffect(() => {
     setHapticEnabledCache(settings.hapticFeedback);
     setSoundEnabledCache(settings.soundEffects);
   }, [settings.hapticFeedback, settings.soundEffects]);
 
   const updateNotificationPrefs = useCallback(async (
     updates: Partial<NotificationPrefs>,
-    protocolBlocks?: { timeBlock: 'morning' | 'afternoon' | 'evening'; count: number }[]
   ) => {
     const updated = { ...notificationPrefs, ...updates };
     setNotificationPrefs(updated);
-    await saveNotificationPrefs(updated);
-    queryClient.invalidateQueries({ queryKey: ['gabriel_notification_prefs'] });
-    if (protocolBlocks) {
-      await scheduleProtocolReminders(updated, protocolBlocks);
-    }
     console.log('[Settings] Notification prefs updated:', updates);
-  }, [notificationPrefs, queryClient]);
-
-  const requestNotifPermissions = useCallback(async (): Promise<boolean> => {
-    const granted = await requestNotificationPermissions();
-    console.log('[Settings] Notification permissions granted:', granted);
-    return granted;
-  }, []);
-
-  const rescheduleNotifications = useCallback(async (
-    protocolBlocks: { timeBlock: 'morning' | 'afternoon' | 'evening'; count: number }[]
-  ) => {
-    await scheduleProtocolReminders(notificationPrefs, protocolBlocks);
   }, [notificationPrefs]);
 
   const updateSettings = useCallback((updates: Partial<AppSettings>) => {
@@ -109,15 +84,13 @@ export const [SettingsProvider, useSettings] = createContextHook(() => {
       setSoundEnabledCache(updates.soundEffects);
     }
     console.log('[Settings] Updated:', updates);
-  }, [settings, saveSettingsMutation]);
+  }, [settings, saveSettingsMutation.mutate]);
 
   return {
     settings,
     updateSettings,
     notificationPrefs,
     updateNotificationPrefs,
-    requestNotifPermissions,
-    rescheduleNotifications,
     isLoading: settingsQuery.isLoading,
   };
 });

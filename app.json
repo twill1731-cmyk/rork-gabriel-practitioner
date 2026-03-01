@@ -19,14 +19,9 @@
       "usesNonExemptEncryption": false,
       "infoPlist": {
         "NSCameraUsageDescription": "Gabriel uses your camera to scan supplement labels and barcodes.",
-        "NSHealthShareUsageDescription": "Gabriel syncs your health data to provide personalized insights and track your wellness trends.",
-        "NSHealthUpdateUsageDescription": "Gabriel syncs your health data to provide personalized insights and track your wellness trends.",
         "NSPhotoLibraryUsageDescription": "Gabriel uses your photo library to upload lab results and supplement images.",
         "NSLocationWhenInUseUsageDescription": "Gabriel uses your location to find naturopathic practitioners near you.",
         "ITSAppUsesNonExemptEncryption": false
-      },
-      "entitlements": {
-        "com.apple.developer.healthkit": true
       }
     },
     "android": {
@@ -36,8 +31,6 @@
       },
       "package": "app.rork.gabriel_practitioner",
       "permissions": [
-        "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.CAMERA",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
@@ -55,7 +48,6 @@
       ],
       "expo-font",
       "expo-web-browser",
-      "expo-audio",
       "expo-camera",
       "expo-location",
       "expo-image-picker",

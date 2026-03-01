@@ -5,7 +5,7 @@ import createContextHook from '@nkzw/create-context-hook';
 import { setHapticEnabledCache } from '../utils/haptics';
 import { setSoundEnabled as setSoundEnabledCache } from '../utils/sounds';
 import type { NotificationPrefs } from '../services/notifications';
-import { DEFAULT_NOTIFICATION_PREFS, loadNotificationPrefs, saveNotificationPrefs, scheduleProtocolReminders, requestNotificationPermissions, cancelAllNotifications } from '../services/notifications';
+import { DEFAULT_NOTIFICATION_PREFS, loadNotificationPrefs, saveNotificationPrefs, scheduleProtocolReminders, requestNotificationPermissions } from '../services/notifications';
 
 export interface AppSettings {
   dailyCheckInReminder: boolean;

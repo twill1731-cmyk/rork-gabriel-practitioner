@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Stack } from "expo-router";
+import { Stack, useRouter, useSegments } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState, useRef } from "react";
 import { StyleSheet, Animated, Image } from "react-native";
@@ -7,6 +7,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StatusBar } from "expo-status-bar";
 import { PractitionerProvider } from "../contexts/PractitionerContext";
 import { SettingsProvider } from "../contexts/SettingsContext";
+import { OnboardingProvider, useOnboarding } from "../contexts/OnboardingContext";
 import Colors from "../constants/colors";
 import {
   useFonts,
@@ -21,24 +22,51 @@ SplashScreen.preventAutoHideAsync();
 
 const queryClient = new QueryClient();
 
+function OnboardingGate({ children }: { children: React.ReactNode }) {
+  const { isComplete, checkOnboarding } = useOnboarding();
+  const router = useRouter();
+  const segments = useSegments();
+
+  useEffect(() => {
+    checkOnboarding();
+  }, []);
+
+  useEffect(() => {
+    if (isComplete === null) return; // Still loading
+
+    const onOnboardingScreen = segments[0] === 'onboarding';
+
+    if (!isComplete && !onOnboardingScreen) {
+      router.replace('/onboarding');
+    } else if (isComplete && onOnboardingScreen) {
+      router.replace('/(tabs)/(dashboard)');
+    }
+  }, [isComplete, segments]);
+
+  return <>{children}</>;
+}
+
 function RootLayoutNav() {
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: Colors.bg },
-        animation: 'fade',
-      }}
-    >
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="patient/[id]"
-        options={{
+    <OnboardingGate>
+      <Stack
+        screenOptions={{
           headerShown: false,
-          animation: 'slide_from_right',
+          contentStyle: { backgroundColor: Colors.bg },
+          animation: 'fade',
         }}
-      />
-    </Stack>
+      >
+        <Stack.Screen name="onboarding" options={{ headerShown: false, animation: 'fade' }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="patient/[id]"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+      </Stack>
+    </OnboardingGate>
   );
 }
 
@@ -141,22 +169,24 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <PractitionerProvider>
-        <SettingsProvider>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <StatusBar style="dark" />
-            <RootLayoutNav />
-            {showSplash && (
-              <BrandedSplash
-                containerOpacity={containerOpacity}
-                logoOpacity={logoOpacity}
-                logoScale={logoScale}
-                textOpacity={textOpacity}
-              />
-            )}
-          </GestureHandlerRootView>
-        </SettingsProvider>
-      </PractitionerProvider>
+      <OnboardingProvider>
+        <PractitionerProvider>
+          <SettingsProvider>
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <StatusBar style="dark" />
+              <RootLayoutNav />
+              {showSplash && (
+                <BrandedSplash
+                  containerOpacity={containerOpacity}
+                  logoOpacity={logoOpacity}
+                  logoScale={logoScale}
+                  textOpacity={textOpacity}
+                />
+              )}
+            </GestureHandlerRootView>
+          </SettingsProvider>
+        </PractitionerProvider>
+      </OnboardingProvider>
     </QueryClientProvider>
   );
 }

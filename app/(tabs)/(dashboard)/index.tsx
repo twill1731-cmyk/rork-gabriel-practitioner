@@ -21,6 +21,9 @@ import {
   Activity,
   ChevronRight,
   Sparkles,
+  ClipboardPlus,
+  Beaker,
+  Pill,
 } from 'lucide-react-native';
 import Colors from '../../../constants/colors';
 import { Fonts } from '../../../constants/fonts';
@@ -221,6 +224,40 @@ export default function DashboardScreen() {
             icon={<Calendar size={18} color={Colors.blue} strokeWidth={1.8} />}
             color={Colors.blue}
           />
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.quickActionsRow}>
+          <TouchableOpacity
+            style={styles.quickActionBtn}
+            onPress={() => { hapticLight(); router.push('/intake' as never); }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: Colors.tealBg }]}>
+              <ClipboardPlus size={18} color={Colors.teal} strokeWidth={1.8} />
+            </View>
+            <Text style={styles.quickActionLabel}>Patient Intake</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickActionBtn}
+            onPress={() => { hapticLight(); router.push('/protocol-builder' as never); }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: Colors.greenBg }]}>
+              <Pill size={18} color={Colors.green} strokeWidth={1.8} />
+            </View>
+            <Text style={styles.quickActionLabel}>Build Protocol</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.quickActionBtn}
+            onPress={() => { hapticLight(); router.push('/lab-interpreter' as never); }}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.quickActionIcon, { backgroundColor: Colors.amberBg }]}>
+              <Beaker size={18} color={Colors.amber} strokeWidth={1.8} />
+            </View>
+            <Text style={styles.quickActionLabel}>Interpret Labs</Text>
+          </TouchableOpacity>
         </View>
 
         {unreadAlerts.length > 0 && (
@@ -635,5 +672,33 @@ const styles = StyleSheet.create({
   },
   reviewDelta: {
     marginTop: 1,
+  },
+  // Quick Actions
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  quickActionBtn: {
+    flex: 1,
+    backgroundColor: Colors.card,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
+  },
+  quickActionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickActionLabel: {
+    fontSize: 11,
+    fontFamily: Fonts.medium,
+    color: Colors.text,
+    letterSpacing: 0.2,
   },
 });

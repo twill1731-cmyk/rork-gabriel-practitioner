@@ -65,6 +65,28 @@ function RootLayoutNav() {
             animation: 'slide_from_right',
           }}
         />
+        <Stack.Screen
+          name="intake"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_bottom',
+            presentation: 'modal',
+          }}
+        />
+        <Stack.Screen
+          name="protocol-builder"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
+        <Stack.Screen
+          name="lab-interpreter"
+          options={{
+            headerShown: false,
+            animation: 'slide_from_right',
+          }}
+        />
       </Stack>
     </OnboardingGate>
   );

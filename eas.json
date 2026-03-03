@@ -21,5 +21,12 @@
         "autoIncrement": "versionCode"
       }
     }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6759882332"
+      }
+    }
   }
 }

@@ -19,7 +19,8 @@
       "usesNonExemptEncryption": false,
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
-      }
+      },
+      "buildNumber": "2"
     },
     "android": {
       "adaptiveIcon": {
@@ -49,7 +50,7 @@
         "origin": "https://rork.com/"
       },
       "eas": {
-        "projectId": "b31e8c65-c817-4f67-8c08-a5521fe4f505"
+        "projectId": "db34669f-1606-4f6f-9c2a-7625e82daa8e"
       }
     },
     "owner": "twill1731"

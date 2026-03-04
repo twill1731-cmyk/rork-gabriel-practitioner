@@ -6,7 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  KeyboardAvoidingView,
+  Keyboard,
   Platform,
   Animated,
   Modal,
@@ -242,6 +242,20 @@ export default function GabrielChatScreen() {
   const typingDot2 = useRef(new Animated.Value(0.3)).current;
   const typingDot3 = useRef(new Animated.Value(0.3)).current;
 
+  // Manual keyboard tracking
+  const [kbHeight, setKbHeight] = useState(0);
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => { setKbHeight(e.endCoordinates.height); setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50); }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => { setKbHeight(0); }
+    );
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
+
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
   }, []);
@@ -389,11 +403,7 @@ export default function GabrielChatScreen() {
         <ChevronDown size={18} color={Colors.textTertiary} strokeWidth={1.8} />
       </TouchableOpacity>
 
-      <KeyboardAvoidingView
-        style={styles.chatArea}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 110 : 0}
-      >
+      <View style={styles.chatArea}>
         <ScrollView
           ref={scrollRef}
           style={styles.messagesScroll}
@@ -440,7 +450,7 @@ export default function GabrielChatScreen() {
           )}
         </ScrollView>
 
-        <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <View style={[styles.inputBar, { paddingBottom: kbHeight > 0 ? 8 : Math.max(insets.bottom, 12), marginBottom: kbHeight > 0 ? kbHeight - insets.bottom : 0 }]}>
           <View style={styles.inputRow}>
             <TextInput
               style={styles.textInput}
@@ -470,7 +480,7 @@ export default function GabrielChatScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
 
       <PatientSelectorModal
         visible={showPatientSelector}

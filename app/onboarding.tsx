@@ -7,9 +7,9 @@ import {
   TouchableOpacity,
   TextInput,
   Animated,
-  KeyboardAvoidingView,
   Platform,
   Dimensions,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -185,6 +185,19 @@ export default function OnboardingScreen() {
   const { updateData, completeOnboarding } = useOnboarding();
   const scrollRef = useRef<ScrollView>(null);
   const inputRef = useRef<TextInput>(null);
+
+  const [kbHeight, setKbHeight] = useState(0);
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      (e) => { setKbHeight(e.endCoordinates.height); setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 50); }
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => { setKbHeight(0); }
+    );
+    return () => { showSub.remove(); hideSub.remove(); };
+  }, []);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState('');
@@ -381,10 +394,8 @@ export default function OnboardingScreen() {
   }, [selectedEmr, addSystemMessage, addGabrielMessage, updateData, completeOnboarding, router]);
 
   return (
-    <KeyboardAvoidingView
+    <View
       style={[styles.container, { paddingTop: insets.top }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={insets.top}
     >
       {/* Header */}
       <View style={styles.header}>
@@ -427,7 +438,7 @@ export default function OnboardingScreen() {
 
       {/* Input */}
       {phase !== 'sync' && phase !== 'done' && (
-        <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <View style={[styles.inputBar, { paddingBottom: kbHeight > 0 ? 8 : Math.max(insets.bottom, 12), marginBottom: kbHeight > 0 ? kbHeight - insets.bottom : 0 }]}>
           <TextInput
             ref={inputRef}
             style={styles.input}
@@ -454,7 +465,7 @@ export default function OnboardingScreen() {
           </TouchableOpacity>
         </View>
       )}
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

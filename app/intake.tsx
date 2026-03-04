@@ -11,6 +11,7 @@ import {
   Platform,
   Dimensions,
   Linking,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -502,6 +503,14 @@ export default function IntakeScreen() {
 
   const progress = questionIndex >= 0 ? ((questionIndex + 1) / INTAKE_QUESTIONS.length) * 100 : 0;
 
+  // Scroll to bottom when keyboard shows
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => {
+      setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    });
+    return () => showSub.remove();
+  }, []);
+
   if (showLock) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -511,10 +520,7 @@ export default function IntakeScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.container, { paddingTop: insets.top }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -534,68 +540,75 @@ export default function IntakeScreen() {
         <Animated.View style={[styles.progressFill, { width: `${Math.min(100, progress)}%` }]} />
       </View>
 
-      {/* Chat */}
-      <ScrollView
-        ref={scrollRef}
-        style={styles.chatArea}
-        contentContainerStyle={[styles.chatContent, IS_TABLET && styles.chatContentTablet]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={insets.top}
       >
-        {messages.map((msg) => {
-          if (msg.sender === 'gabriel') return <GabrielBubble key={msg.id} content={msg.content} typing={msg.typing} />;
-          if (msg.sender === 'system') return <SystemBubble key={msg.id} content={msg.content} />;
-          return <PatientBubble key={msg.id} content={msg.content} />;
-        })}
+        {/* Chat */}
+        <ScrollView
+          ref={scrollRef}
+          style={styles.chatArea}
+          contentContainerStyle={[styles.chatContent, IS_TABLET && styles.chatContentTablet]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          keyboardDismissMode="interactive"
+        >
+          {messages.map((msg) => {
+            if (msg.sender === 'gabriel') return <GabrielBubble key={msg.id} content={msg.content} typing={msg.typing} />;
+            if (msg.sender === 'system') return <SystemBubble key={msg.id} content={msg.content} />;
+            return <PatientBubble key={msg.id} content={msg.content} />;
+          })}
 
-        {/* Inline response UI */}
-        {showInput === 'yes-no' && <YesNoInput onAnswer={handleAnswer} />}
-        {showInput === 'single-select' && currentQuestion?.options && <SingleSelect options={currentQuestion.options} onAnswer={handleAnswer} />}
-        {showInput === 'multi-select' && currentQuestion?.options && <MultiSelect options={currentQuestion.options} onAnswer={handleAnswer} />}
-        {showInput === 'scale' && currentQuestion && (
-          <ScaleInput min={currentQuestion.scaleMin || 1} max={currentQuestion.scaleMax || 10} labels={currentQuestion.scaleLabels} onAnswer={handleAnswer} />
+          {/* Inline response UI */}
+          {showInput === 'yes-no' && <YesNoInput onAnswer={handleAnswer} />}
+          {showInput === 'single-select' && currentQuestion?.options && <SingleSelect options={currentQuestion.options} onAnswer={handleAnswer} />}
+          {showInput === 'multi-select' && currentQuestion?.options && <MultiSelect options={currentQuestion.options} onAnswer={handleAnswer} />}
+          {showInput === 'scale' && currentQuestion && (
+            <ScaleInput min={currentQuestion.scaleMin || 1} max={currentQuestion.scaleMax || 10} labels={currentQuestion.scaleLabels} onAnswer={handleAnswer} />
+          )}
+
+          {showDownload && <DownloadPrompt />}
+        </ScrollView>
+
+        {/* Text input (only for text/date questions) */}
+        {(showInput === 'text' || showInput === 'date') && !isComplete && (
+          <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 8) }, IS_TABLET && styles.inputBarTablet]}>
+            <TextInput
+              ref={inputRef}
+              style={[styles.input, IS_TABLET && styles.inputTablet]}
+              placeholder={showInput === 'date' ? "MM/DD/YYYY" : "Type your answer..."}
+              placeholderTextColor={Colors.textTertiary}
+              value={inputText}
+              onChangeText={setInputText}
+              onSubmitEditing={handleTextSend}
+              returnKeyType="send"
+              editable={inputEnabled}
+              keyboardType={showInput === 'date' ? 'numbers-and-punctuation' : 'default'}
+              autoFocus
+            />
+            <TouchableOpacity
+              style={[styles.sendButton, (!inputText.trim() || !inputEnabled) && styles.sendButtonDisabled]}
+              onPress={handleTextSend}
+              disabled={!inputText.trim() || !inputEnabled}
+              activeOpacity={0.7}
+            >
+              <Send size={18} color={inputText.trim() && inputEnabled ? Colors.textInverse : Colors.textTertiary} strokeWidth={2} />
+            </TouchableOpacity>
+          </View>
         )}
 
-        {showDownload && <DownloadPrompt />}
-      </ScrollView>
-
-      {/* Text input (only for text/date questions) */}
-      {(showInput === 'text' || showInput === 'date') && !isComplete && (
-        <View style={[styles.inputBar, { paddingBottom: Math.max(insets.bottom, 12) }, IS_TABLET && styles.inputBarTablet]}>
-          <TextInput
-            ref={inputRef}
-            style={[styles.input, IS_TABLET && styles.inputTablet]}
-            placeholder={showInput === 'date' ? "MM/DD/YYYY" : "Type your answer..."}
-            placeholderTextColor={Colors.textTertiary}
-            value={inputText}
-            onChangeText={setInputText}
-            onSubmitEditing={handleTextSend}
-            returnKeyType="send"
-            editable={inputEnabled}
-            keyboardType={showInput === 'date' ? 'numbers-and-punctuation' : 'default'}
-            autoFocus
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, (!inputText.trim() || !inputEnabled) && styles.sendButtonDisabled]}
-            onPress={handleTextSend}
-            disabled={!inputText.trim() || !inputEnabled}
-            activeOpacity={0.7}
-          >
-            <Send size={18} color={inputText.trim() && inputEnabled ? Colors.textInverse : Colors.textTertiary} strokeWidth={2} />
-          </TouchableOpacity>
-        </View>
-      )}
-
-      {/* Complete bar */}
-      {isComplete && !showLock && (
-        <View style={[styles.completeBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-          <TouchableOpacity style={styles.returnBtn} onPress={() => { hapticMedium(); setShowLock(true); }} activeOpacity={0.7}>
-            <Lock size={16} color={Colors.text} strokeWidth={2} />
-            <Text style={styles.returnBtnText}>Hand Back to Staff</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-    </KeyboardAvoidingView>
+        {/* Complete bar */}
+        {isComplete && !showLock && (
+          <View style={[styles.completeBar, { paddingBottom: Math.max(insets.bottom, 12) }]}>
+            <TouchableOpacity style={styles.returnBtn} onPress={() => { hapticMedium(); setShowLock(true); }} activeOpacity={0.7}>
+              <Lock size={16} color={Colors.text} strokeWidth={2} />
+              <Text style={styles.returnBtnText}>Hand Back to Staff</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
